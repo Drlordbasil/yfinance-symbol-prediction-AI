@@ -1,8 +1,9 @@
-import yfinance as yf
-import numpy as np
-from tensorflow import keras
-from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow import keras
+import numpy as np
+import yfinance as yf
+Optimized Python script:
 
 
 def fetch_data(symbol, start, end):
@@ -23,9 +24,11 @@ def preprocess_data(data):
 
 def convert_to_sequences(data_scaled, sequence_length):
     try:
-        X = [data_scaled[i:i + sequence_length]
-             for i in range(len(data_scaled) - sequence_length)]
-        y = data_scaled[sequence_length:]
+        X = []
+        y = []
+        for i in range(len(data_scaled) - sequence_length):
+            X.append(data_scaled[i:i + sequence_length])
+            y.append(data_scaled[i + sequence_length])
         return np.array(X), np.array(y)
     except Exception as e:
         raise Exception(f"Error converting to sequences: {e}")
@@ -71,8 +74,8 @@ def make_realtime_prediction(model, scaler, sequence_length, symbol, start, end)
     try:
         live_data = fetch_data(symbol, start, end)
         live_data_scaled = scaler.transform(live_data.values.reshape(-1, 1))
-        last_sequence = live_data_scaled[-sequence_length:]
-        return model.predict(np.array([last_sequence]))
+        last_sequence = np.array([live_data_scaled[-sequence_length:]])
+        return model.predict(last_sequence)
     except Exception as e:
         raise Exception(f"Error making real-time prediction: {e}")
 
@@ -86,10 +89,8 @@ def main():
 
         data = [fetch_data(symbol, start_date, end_date) for symbol in symbols]
         data_scaled = [preprocess_data(d) for d in data]
-        X = np.concatenate([convert_to_sequences(
-            d, sequence_length)[0] for d in data_scaled])
-        y = np.concatenate([convert_to_sequences(
-            d, sequence_length)[1] for d in data_scaled])
+        X, y = convert_to_sequences(
+            np.concatenate(data_scaled), sequence_length)
         X_train, X_val, y_train, y_val = split_dataset(X, y, test_size=0.2)
 
         model = build_model(sequence_length)
